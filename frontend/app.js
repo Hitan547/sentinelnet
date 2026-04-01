@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════
 const BACKEND_URL = 'https://hitan2004-sentinelnet.hf.space';
 const BATCH_SIZE  = 50;
-const PAGE_SIZE   = 50;
+const PAGE_SIZE   = 100;
 
 // ════════════════════════════════════════════════
 // CONSTANTS
