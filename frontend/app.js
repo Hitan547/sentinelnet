@@ -274,7 +274,7 @@ async function processBatches() {
     }
 
     // Show last 5 rows in feed
-    const feedSlice = batch.slice(-5);
+    const feedSlice = batch.slice(-2);
     feedSlice.forEach((row, i) => {
       const ri = bEnd - feedSlice.length + i;
       addCsvFeedRow(ri+1, row, results[batch.length-feedSlice.length+i].predicted_class,
@@ -297,9 +297,9 @@ async function processBatches() {
     if (csvIntrusionCount / Math.max(csvIndex,1) > 0.5)
       document.getElementById('csvProgressFill').classList.add('warning');
 
-    if (batchNum % 3 === 0 || batchNum === totalBatches) updateCsvSidebar(rate);
+    if (batchNum % 5 === 0 || batchNum === totalBatches) updateCsvSidebar(rate);
     setText('csvAlertCount', csvIntrusionCount.toLocaleString() + ' THREATS');
-    await new Promise(r => setTimeout(r, 60));
+    await new Promise(r => setTimeout(r, 100));
   }
   if (csvIndex >= csvRows.length) finishCsvAnalysis();
 }
@@ -340,7 +340,7 @@ function addCsvFeedRow(rowNum, row, cls, conf, sev) {
     <td style="color:${conf>0.9?'var(--accent)':conf>0.8?'var(--cyan)':'var(--amber)'}">${(conf*100).toFixed(1)}%</td>
     <td style="color:${SEV_COLOR[sev]}">● ${sev}</td>`;
   tbody.insertBefore(tr, tbody.firstChild);
-  while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
+  while (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
 }
 
 function updateCsvSidebar(rate) {
