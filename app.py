@@ -1,7 +1,7 @@
 import os, joblib
 import numpy as np
 import pandas as pd
-from flask import Flask, request, jsonify, send_from_directory  # ← add send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -31,10 +31,15 @@ COLUMNS = [
 ]
 SEVERITY_MAP = {'normal':'None','DoS':'Critical','Probe':'Medium','R2L':'High','U2R':'Critical'}
 
-# ── NEW: Serve frontend ─────────────────────────────────────────────────────
+# ── Serve frontend ──────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return send_from_directory("frontend", "index.html")
+
+# ── THIS IS THE KEY FIX: serve style.css, app.js, and any other static files
+@app.route("/<path:filename>")
+def static_files(filename):
+    return send_from_directory("frontend", filename)
 
 # ── Everything below is UNCHANGED ──────────────────────────────────────────
 
