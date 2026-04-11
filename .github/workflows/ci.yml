@@ -1,8 +1,8 @@
-name: CI Pipeline
+name: SentinelNet CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
 
 jobs:
@@ -13,23 +13,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # 🐍 Python setup
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: "3.10"
 
+    # 📦 Install dependencies
     - name: Install dependencies
       run: |
+        pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Run basic check
+    # 🧠 Check backend syntax
+    - name: Check Python syntax
       run: |
         python -m py_compile app.py
 
-    - name: Run tests (if any)
+    # 🚀 Run Flask health check (VERY IMP)
+    - name: Test Flask app startup
       run: |
-        echo "No tests yet"
+        python app.py &
+        sleep 5
+        curl http://127.0.0.1:7860/health
 
-    - name: Build Docker Image
+    # 🐳 Docker build test
+    - name: Build Docker image
       run: |
         docker build -t sentinelnet .
