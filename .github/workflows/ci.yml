@@ -53,7 +53,9 @@ jobs:
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        pip install huggingface_hub rsync
+        pip install huggingface_hub
+        sudo apt-get update
+        sudo apt-get install -y rsync
 
         git config --global user.email "you@example.com"
         git config --global user.name "github-actions"
