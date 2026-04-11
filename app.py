@@ -4,19 +4,27 @@ import pandas as pd
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+SKIP_MODEL = os.getenv("SKIP_MODEL", "false") == "true"
 app = Flask(__name__)
 CORS(app, origins="*")
 
 # ── Load all model artifacts ────────────────────────────────────────────────
 MODEL_DIR = os.path.join(os.path.dirname(__file__), 'models')
 
-sentinel_brain    = joblib.load(os.path.join(MODEL_DIR, 'sentinel_brain.joblib'))
-le                = joblib.load(os.path.join(MODEL_DIR, 'label_encoder.joblib'))
-ohe               = joblib.load(os.path.join(MODEL_DIR, 'ohe_encoder.joblib'))
-freq_map          = joblib.load(os.path.join(MODEL_DIR, 'freq_map.joblib'))
-scaler            = joblib.load(os.path.join(MODEL_DIR, 'scaler.joblib'))
-selected_features = joblib.load(os.path.join(MODEL_DIR, 'selected_features.joblib'))
-
+if not SKIP_MODEL:
+    sentinel_brain    = joblib.load(os.path.join(MODEL_DIR, 'sentinel_brain.joblib'))
+    le                = joblib.load(os.path.join(MODEL_DIR, 'label_encoder.joblib'))
+    ohe               = joblib.load(os.path.join(MODEL_DIR, 'ohe_encoder.joblib'))
+    freq_map          = joblib.load(os.path.join(MODEL_DIR, 'freq_map.joblib'))
+    scaler            = joblib.load(os.path.join(MODEL_DIR, 'scaler.joblib'))
+    selected_features = joblib.load(os.path.join(MODEL_DIR, 'selected_features.joblib'))
+else:
+    sentinel_brain = None
+    le = None
+    ohe = None
+    freq_map = {}
+    scaler = None
+    selected_features = []
 COLUMNS = [
     'duration','protocol_type','service','flag','src_bytes','dst_bytes',
     'land','wrong_fragment','urgent','hot','num_failed_logins','logged_in',
@@ -72,20 +80,33 @@ def preprocess(df):
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'online', 'model': 'sentinel_brain'})
+    return jsonify({
+        'status': 'online',
+        'model_loaded': not SKIP_MODEL
+    })
 
 @app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
+
+    if SKIP_MODEL:
+        return jsonify({
+            'status': 'error',
+            'message': 'Model not loaded (CI mode)'
+        }), 503
+
     try:
         data = request.get_json(force=True)
         rows = data.get('rows', [])
         df   = pd.DataFrame(rows)
-        X    = preprocess(df)
+
+        X = preprocess(df)
+
         preds   = sentinel_brain.predict(X)
         proba   = sentinel_brain.predict_proba(X)
         classes = le.inverse_transform(preds)
+
         results = [
             {
                 'predicted_class': cls,
@@ -95,11 +116,16 @@ def predict():
             }
             for cls, conf in zip(classes, proba.max(axis=1))
         ]
+
         return jsonify({'status': 'ok', 'results': results})
+
     except Exception as e:
         import traceback
-        return jsonify({'status': 'error', 'message': str(e),
-                        'trace': traceback.format_exc()}), 500
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'trace': traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860)
