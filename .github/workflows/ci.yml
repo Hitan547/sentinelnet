@@ -32,7 +32,6 @@ jobs:
         export SKIP_MODEL=true
         python app.py &
 
-        # wait until server is ready
         for i in {1..10}; do
           if curl -fsS http://127.0.0.1:7860/health; then
             echo "Server is up!"
@@ -48,3 +47,22 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t sentinelnet .
+
+    # 🚀 CD STEP (correct placement)
+    - name: Deploy to HuggingFace Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        pip install huggingface_hub rsync
+
+        git config --global user.email "you@example.com"
+        git config --global user.name "github-actions"
+
+        git clone https://Hitan2004:$HF_TOKEN@huggingface.co/spaces/Hitan2004/sentinelnet hf_space
+
+        rsync -av --exclude='.git' ./ hf_space/
+
+        cd hf_space
+        git add .
+        git commit -m "Auto deploy from GitHub Actions" || echo "No changes to commit"
+        git push
